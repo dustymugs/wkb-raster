@@ -15,15 +15,28 @@ Links
 """
 from setuptools import setup
 
+test_requires = [
+    'nose2'
+]
+
+dev_requires = [
+    'flake8',
+    'nose2[coverage_plugin]>=0.6.5'
+]
+
 setup(
     name='WKB-Raster',
-    version='0.6.1',
-    url='https://github.com/nathancahill/wkb-raster',
+    version='0.7.0',
+    url='',
     license='MIT',
-    author='Nathan Cahill',
-    author_email='nathan@nathancahill.com',
-    description='Read WKB rasters to Numpy arrays.',
+    author='',
+    author_email='',
+    description='Read/Write WKB rasters',
     long_description=__doc__,
     py_modules=['wkb_raster'],
-    install_requires=['numpy']
+    install_requires=['numpy'],
+    extras_require={
+        'test': test_requires,
+        'dev': test_requires + dev_requires
+    }
 )
