@@ -150,10 +150,10 @@ def read_wkb_raster(wkb):
         # Based on the pixel type, determine the struct format, byte size and
         # numpy dtype
         fmts = ['?', 'B', 'B', 'b', 'B', 'h',
-                'H', 'i', 'I', '', 'f', 'd']
+                'H', 'i', 'I', None, 'f', 'd']
         dtypes = ['b1', 'u1', 'u1', 'i1', 'u1', 'i2',
-                  'u2', 'i4', 'u4', '', 'f4', 'f8']
-        sizes = [1, 1, 1, 1, 1, 2, 2, 4, 4, '', 4, 8]
+                  'u2', 'i4', 'u4', None, 'f4', 'f8']
+        sizes = [1, 1, 1, 1, 1, 2, 2, 4, 4, None, 4, 8]
 
         dtype = dtypes[pixtype]
         size = sizes[pixtype]
