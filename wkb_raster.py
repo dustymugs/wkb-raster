@@ -133,13 +133,13 @@ def read_wkb_raster(wkb):
         # |               |              | 6: 16-bit unsigned signed integer |
         # |               |              | 7: 32-bit signed integer          |
         # |               |              | 8: 32-bit unsigned signed integer |
-        # |               |              | 9: 32-bit float                   |
-        # |               |              | 10: 64-bit float                  |
+        # |               |              | 10: 32-bit float                  |
+        # |               |              | 11: 64-bit float                  |
         # +---------------+--------------+-----------------------------------+
         #
         # Requires reading a single byte, and splitting the bits into the
         # header attributes
-        (bits,) = unpack(endian + 'b', wkb.read(1))
+        (bits,) = unpack(endian + 'B', wkb.read(1))
 
         band['isOffline'] = bool(bits & 128)  # first bit
         band['hasNodataValue'] = bool(bits & 64)  # second bit
@@ -150,10 +150,10 @@ def read_wkb_raster(wkb):
         # Based on the pixel type, determine the struct format, byte size and
         # numpy dtype
         fmts = ['?', 'B', 'B', 'b', 'B', 'h',
-                'H', 'i', 'I', 'f', 'd']
+                'H', 'i', 'I', '', 'f', 'd']
         dtypes = ['b1', 'u1', 'u1', 'i1', 'u1', 'i2',
-                  'u2', 'i4', 'u4', 'f4', 'f8']
-        sizes = [1, 1, 1, 1, 1, 2, 2, 4, 4, 4, 8]
+                  'u2', 'i4', 'u4', '', 'f4', 'f8']
+        sizes = [1, 1, 1, 1, 1, 2, 2, 4, 4, '', 4, 8]
 
         dtype = dtypes[pixtype]
         size = sizes[pixtype]
