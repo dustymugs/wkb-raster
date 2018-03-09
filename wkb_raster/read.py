@@ -217,7 +217,3 @@ def read(wkb):
         ret['bands'].append(band)
 
     return ret
-
-def write_wkb_raster(obj):
-
-    pass
