@@ -2,10 +2,11 @@ from struct import unpack
 import numpy as np
 
 __all__ = [
-    'read_wkb_raster'
+    'read'
 ]
 
-def read_wkb_raster(wkb):
+def read(wkb):
+
     """Read a WKB raster to a Numpy array.
 
     Based off of the RFC here:
@@ -47,8 +48,10 @@ def read_wkb_raster(wkb):
     # +---------------+-------------+------------------------------+
     (endian,) = unpack('<b', wkb.read(1))
 
+    # big endian
     if endian == 0:
         endian = '>'
+    # little endian
     elif endian == 1:
         endian = '<'
 
