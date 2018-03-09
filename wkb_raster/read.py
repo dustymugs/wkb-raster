@@ -48,8 +48,10 @@ def read(wkb):
     # +---------------+-------------+------------------------------+
     (endian,) = unpack('<b', wkb.read(1))
 
+    # big endian
     if endian == 0:
         endian = '>'
+    # little endian
     elif endian == 1:
         endian = '<'
 
