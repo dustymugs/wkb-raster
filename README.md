@@ -5,7 +5,7 @@ Read WKB rasters to Numpy arrays.
 ### Docs
 
 ```python
-wkb_raster.read_wkb_raster(wkb)
+wkb_raster.read(wkb)
 ```
 
 __Parameters__
@@ -39,27 +39,27 @@ __Usage__
 With a binary WKB file:
 
 ```python
-from wkb_raster import read_wkb_raster
+import wkb_raster
 
 with open('img.wkb') as f:
-    raster = read_wkb_raster(f)
+    raster = wkb_raster.read(f)
     raster['bands'][0]
 ```
 
-With WKB from PostGIS Raster. Use [ST_AsBinary](http://postgis.net/docs/manual-dev/RT_ST_AsBinary.html)
+With WKB from PostGIS Raster. Use [ST_AsWKB](http://postgis.net/docs/manual-dev/RT_ST_AsBinary.html)
 to return the WKB representation of the raster.
 
 ```sql
-SELECT ST_AsBinary(rast) FROM rasters;
+SELECT ST_AsWKB(rast) FROM rasters;
 ```
 
 Wrap the binary buffer in `cStringIO.StringIO`:
 
 ```python
 from cStringIO import StringIO
-from wkb_raster import read_wkb_raster
+import wkb_raster
 
-raster = read_wkb_raster(StringIO(buf))
+raster = wkb_raster.read(StringIO(buf))
 raster['bands'][0]
 ```
 
