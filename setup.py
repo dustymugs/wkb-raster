@@ -33,7 +33,7 @@ setup(
     author_email='',
     description='Read/Write WKB rasters',
     long_description=__doc__,
-    py_modules=['wkb_raster'],
+    packages=['wkb_raster'],
     install_requires=['numpy'],
     extras_require={
         'test': test_requires,
