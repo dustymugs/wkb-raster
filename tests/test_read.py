@@ -5,6 +5,8 @@ import unittest
 
 import wkb_raster
 
+BUILD_DATA = True
+
 class TestWKBRasterRead(unittest.TestCase):
 
     def setUp(self):
@@ -32,15 +34,18 @@ class TestWKBRasterRead(unittest.TestCase):
 
             expected_file = '{}.expected'.format(wkb_file)
 
-            #if not os.path.exists(expected_file):
-            #    with open(wkb_file, 'rb') as fh:
-            #        with open(expected_file, 'wb') as out:
-            #            pickle.dump(
-            #                wkb_raster.read(fh),
-            #                out,
-            #                protocol=2
-            #            )
-            #    continue
+            if BUILD_DATA:
+
+                with open(wkb_file, 'rb') as fh:
+
+                    with open(expected_file, 'wb') as out:
+                        pickle.dump(
+                            wkb_raster.read(fh),
+                            out,
+                            protocol=2
+                        )
+
+                continue
 
             with open(expected_file, 'rb') as fh:
 
