@@ -26,7 +26,7 @@ dev_requires = [
 
 setup(
     name='WKB-Raster',
-    version='0.8.1',
+    version='0.8.2',
     url='',
     license='MIT',
     author='',
