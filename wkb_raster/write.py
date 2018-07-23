@@ -90,7 +90,7 @@ class POSTGIS_PIXEL_TYPES(object):
     @staticmethod
     def get_by(pixtype=None, size=None, struct=None, numpy=None):
 
-        return (
+        return tuple((
             v
             for v in POSTGIS_PIXEL_TYPES.children
             if (
@@ -99,13 +99,13 @@ class POSTGIS_PIXEL_TYPES(object):
                 (struct is not None and v.struct == struct) or
                 (numpy is not None and v.numpy == numpy)
             )
-        )
+        ))
 
-POSTGIS_PIXEL_TYPES.children = (
+POSTGIS_PIXEL_TYPES.children = tuple((
     v
     for k, v in POSTGIS_PIXEL_TYPES.__dict__.items()
     if isclass(v)
-)
+))
 
 def write(rast_dict):
     '''
@@ -255,15 +255,15 @@ def write(rast_dict):
         # +---------------+--------------+-----------------------------------+
 
         # extract pixel info for numpy array
-        pixel_class = POSTGIS_PIXEL_TYPES.get_by(pixtype=band_dict['pixtype'])
+        pixel_class = POSTGIS_PIXEL_TYPES.get_by(pixtype=band_dict['pixtype'])[0]
 
         band_bstr += pack(
             endian + 'B',
             (
-                int(band_dict['isOffline']) << 7 +
-                int(band_dict['hasNodataValue']) << 6 +
-                int(band_dict['isNodataValue']) << 5 +
-                0 << 4 +
+                (int(band_dict['isOffline']) << 7) +
+                (int(band_dict['hasNodataValue']) << 6) +
+                (int(band_dict['isNodataValue']) << 5) +
+                (0 << 4) +
                 pixel_class.pixtype
             )
         )
@@ -297,8 +297,10 @@ def write(rast_dict):
                 band_dict['bandNumber'] - 1
             )
 
+            path = band_dict['path'].encode()
             band_bstr += pack(
-                endian + ''.join(['B'] * len(band_dict['path']))
+                '{}{}s'.format(endian, len(path)),
+                path
             )
             band_bstr += b'\x00' # NULL value denoting end of string
 
@@ -323,7 +325,7 @@ def write(rast_dict):
                     [pixel_class.struct] *
                     (rast_dict['width'] * rast_dict['height'])
                 ),
-                band_dict['ndarray'].flatten().tolist()
+                *(band_dict['ndarray'].flatten().tolist())
             )
 
         rast_bstr += band_bstr

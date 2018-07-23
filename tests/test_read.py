@@ -18,7 +18,7 @@ class TestWKBRasterRead(unittest.TestCase):
             )
         )
 
-        self.wkb_files = [
+        self.source_files = [
             os.path.join(self.data_dir, f)
             for f in os.listdir(self.data_dir)
             if (
@@ -30,13 +30,14 @@ class TestWKBRasterRead(unittest.TestCase):
 
     def test_read(self):
 
-        for wkb_file in self.wkb_files:
+        for source_file in self.source_files:
 
-            expected_file = '{}.expected'.format(wkb_file)
+            expected_file = '{}.expected'.format(source_file)
 
+            # yeah... dirty override
             if BUILD_DATA:
 
-                with open(wkb_file, 'rb') as fh:
+                with open(source_file, 'rb') as fh:
 
                     with open(expected_file, 'wb') as out:
                         pickle.dump(
@@ -51,7 +52,7 @@ class TestWKBRasterRead(unittest.TestCase):
 
                 expected = pickle.load(fh)
 
-            with open(wkb_file, 'rb') as fh:
+            with open(source_file, 'rb') as fh:
 
                 testing = wkb_raster.read(fh)
 
