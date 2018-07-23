@@ -1,19 +1,122 @@
-from struct import unpack
+from inspect import isclass
 import numpy as np
+from struct import pack
+import sys
 
 __all__ = [
-    'read'
+    'POSTGIS_PIXEL_TYPES',
+    'write'
 ]
 
-def read(wkb):
+class POSTGIS_PIXEL_TYPES(object):
 
-    """Read a WKB raster to a Numpy array.
+    class BOOL(object):
 
-    Based off the RFC here:
+        pixtype = 0 
+        size = 1
+        struct = '?'
+        numpy = np.bool_
 
-        http://trac.osgeo.org/postgis/browser/trunk/raster/doc/RFC2-WellKnownBinaryFormat
+    class UINT2(object):
 
-    Object is returned in this format:
+        pixtype = 1
+        size = 1
+        struct = 'B'
+        numpy = np.uint8
+
+    class UINT4(object):
+
+        pixtype = 2 
+        size = 1
+        struct = 'B'
+        numpy = np.uint8
+
+    class INT8(object):
+
+        pixtype = 3 
+        size = 1
+        struct = 'b'
+        numpy = np.int8
+
+    class UINT8(object):
+
+        pixtype = 4
+        size = 1
+        struct = 'B'
+        numpy = np.uint8
+
+    class INT16(object):
+
+        pixtype = 5
+        size = 2
+        struct = 'h'
+        numpy = np.int16
+
+    class UINT16(object):
+
+        pixtype =  6
+        size = 2
+        struct = 'H'
+        numpy = np.uint16
+
+    class INT32(object):
+
+        pixtype = 7
+        size = 4
+        struct = 'i'
+        numpy = np.int32
+
+    class UINT32(object):
+
+        pixtype = 8
+        size = 4
+        struct = 'I'
+        numpy = np.uint32
+
+    class FLOAT32(object):
+
+        pixtype = 10
+        size = 4
+        struct = 'f'
+        numpy = np.float32
+
+    class FLOAT64(object):
+
+        pixtype = 11
+        size = 8
+        struct = 'd'
+        numpy = np.float64
+
+    @staticmethod
+    def get_by(pixtype=None, size=None, struct=None, numpy=None):
+
+        return tuple((
+            v
+            for v in POSTGIS_PIXEL_TYPES.children
+            if (
+                (pixtype is not None and v.pixtype == pixtype) or
+                (size is not None and v.size == size) or
+                (struct is not None and v.struct == struct) or
+                (numpy is not None and v.numpy == numpy)
+            )
+        ))
+
+POSTGIS_PIXEL_TYPES.children = tuple((
+    v
+    for k, v in POSTGIS_PIXEL_TYPES.__dict__.items()
+    if isclass(v)
+))
+
+def write(rast_dict):
+    '''
+    Provided a dictionary matching the return of wkb_raster.read, returns
+    a WKB file-like objecto
+
+    Based off the RFC:
+
+        https://trac.osgeo.org/postgis/browser/trunk/raster/doc/RFC2-WellKnownBinaryFormat
+
+    rast_dict expected to have this format:
 
         {
             'version': int,
@@ -47,10 +150,11 @@ def read(wkb):
             ]
         }
 
-    :wkb file-like object: Binary raster in WKB format
-    :returns: obj
-    """
-    ret = {}
+    : rast_dict: dictionary to be serialized into WKB
+    : returns: WKB binary string
+    '''
+
+    rast_bstr = b''
 
     # raster endian
     #
@@ -58,14 +162,11 @@ def read(wkb):
     # | endiannes     | byte        | 1:ndr/little endian          |
     # |               |             | 0:xdr/big endian             |
     # +---------------+-------------+------------------------------+
-    (endian,) = unpack('<b', wkb.read(1))
-
-    # big endian
-    if endian == 0:
-        endian = '>'
-    # little endian
-    elif endian == 1:
-        endian = '<'
+    endian = '>' if sys.byteorder != 'little' else '<'
+    rast_bstr += pack(
+        endian + 'b',
+        0 if endian == '>' else 1
+    )
 
     # raster header data
     #
@@ -99,23 +200,24 @@ def read(wkb):
     # +---------------+-------------+------------------------------+
     # | height        | uint16      | number of pixel rows         |
     # +---------------+-------------+------------------------------+
-    (version, bands, scaleX, scaleY, ipX, ipY, skewX, skewY,
-     srid, width, height) = unpack(endian + 'HHddddddIHH', wkb.read(60))
+    rast_bstr += pack(
+        endian + 'HHddddddIHH',
+        rast_dict['version'],
+        len(rast_dict['bands']),
+        rast_dict['scaleX'],
+        rast_dict['scaleY'],
+        rast_dict['ipX'],
+        rast_dict['ipY'],
+        rast_dict['skewX'],
+        rast_dict['skewY'],
+        rast_dict['srid'],
+        rast_dict['width'],
+        rast_dict['height']
+    )
 
-    ret['version'] = version
-    ret['scaleX'] = scaleX
-    ret['scaleY'] = scaleY
-    ret['ipX'] = ipX
-    ret['ipY'] = ipY
-    ret['skewX'] = skewX
-    ret['skewY'] = skewY
-    ret['srid'] = srid
-    ret['width'] = width
-    ret['height'] = height
-    ret['bands'] = []
+    for band_dict in rast_dict['bands']:
 
-    for _ in range(bands):
-        band = {}
+        band_bstr = b''
 
         # band header data
         #
@@ -151,29 +253,20 @@ def read(wkb):
         # |               |              | 10: 32-bit float                  |
         # |               |              | 11: 64-bit float                  |
         # +---------------+--------------+-----------------------------------+
-        #
-        # Requires reading a single byte, and splitting the bits into the
-        # header attributes
-        (bits,) = unpack(endian + 'B', wkb.read(1))
 
-        band['isOffline'] = bool(bits & 128)  # first bit
-        band['hasNodataValue'] = bool(bits & 64)  # second bit
-        band['isNodataValue'] = bool(bits & 32)  # third bit
+        # extract pixel info for numpy array
+        pixel_class = POSTGIS_PIXEL_TYPES.get_by(pixtype=band_dict['pixtype'])[0]
 
-        pixtype = bits & 15  # bits 5-8
-        band['pixtype'] = pixtype
-
-        # Based on the pixel type, determine the struct format, byte size and
-        # numpy dtype
-        fmts = ['?', 'B', 'B', 'b', 'B', 'h',
-                'H', 'i', 'I', None, 'f', 'd']
-        dtypes = ['b1', 'u1', 'u1', 'i1', 'u1', 'i2',
-                  'u2', 'i4', 'u4', None, 'f4', 'f8']
-        sizes = [1, 1, 1, 1, 1, 2, 2, 4, 4, None, 4, 8]
-
-        dtype = dtypes[pixtype]
-        size = sizes[pixtype]
-        fmt = fmts[pixtype]
+        band_bstr += pack(
+            endian + 'B',
+            (
+                (int(band_dict['isOffline']) << 7) +
+                (int(band_dict['hasNodataValue']) << 6) +
+                (int(band_dict['isNodataValue']) << 5) +
+                (0 << 4) +
+                pixel_class.pixtype
+            )
+        )
 
         # nodata value
         # +---------------+--------------+-----------------------------------+
@@ -181,11 +274,12 @@ def read(wkb):
         # |               | depending on |                                   |
         # |               | pixtype [1]  |                                   |
         # +---------------+--------------+-----------------------------------+
-        (nodata,) = unpack(endian + fmt, wkb.read(size))
+        band_bstr += pack(
+            endian + pixel_class.struct,
+            band_dict['nodata']
+        )
 
-        band['nodata'] = nodata
-
-        if band['isOffline']:
+        if band_dict['isOffline']:
 
             # out-db metadata
             #
@@ -197,19 +291,18 @@ def read(wkb):
             # | path        | string      | null-terminated path to data file |
             # +-------------+-------------+-----------------------------------+
 
-            # offline bands are 0-based, make 1-based for user consumption
-            (band_num,) = unpack(endian + 'B', wkb.read(1))
-            band['bandNumber'] = band_num + 1
+            # offline bands are 0-based, convert from 1-based due to user consumption
+            band_bstr += pack(
+                endian + 'B',
+                band_dict['bandNumber'] - 1
+            )
 
-            data = b''
-            while True:
-                byte = wkb.read(1)
-                if byte == b'\x00':
-                    break
-
-                data += byte
-
-            band['path'] = data.decode()
+            path = band_dict['path'].encode()
+            band_bstr += pack(
+                '{}{}s'.format(endian, len(path)),
+                path
+            )
+            band_bstr += b'\x00' # NULL value denoting end of string
 
         else:
 
@@ -226,12 +319,15 @@ def read(wkb):
             # |            |              | significant first)                |
             # |            |              |                                   |
             # +------------+--------------+-----------------------------------+
-            band['ndarray'] = np.ndarray(
-                (height, width),
-                buffer=wkb.read(width * height * size),
-                dtype=np.dtype(dtype)
+
+            band_bstr += pack(
+                endian + ''.join(
+                    [pixel_class.struct] *
+                    (rast_dict['width'] * rast_dict['height'])
+                ),
+                *(band_dict['ndarray'].flatten().tolist())
             )
 
-        ret['bands'].append(band)
+        rast_bstr += band_bstr
 
-    return ret
+    return rast_bstr

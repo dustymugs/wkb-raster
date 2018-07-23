@@ -5,6 +5,8 @@ import unittest
 
 import wkb_raster
 
+BUILD_DATA = True
+
 class TestWKBRasterRead(unittest.TestCase):
 
     def setUp(self):
@@ -16,7 +18,7 @@ class TestWKBRasterRead(unittest.TestCase):
             )
         )
 
-        self.wkb_files = [
+        self.source_files = [
             os.path.join(self.data_dir, f)
             for f in os.listdir(self.data_dir)
             if (
@@ -28,25 +30,29 @@ class TestWKBRasterRead(unittest.TestCase):
 
     def test_read(self):
 
-        for wkb_file in self.wkb_files:
+        for source_file in self.source_files:
 
-            expected_file = '{}.expected'.format(wkb_file)
+            expected_file = '{}.expected'.format(source_file)
 
-            #if not os.path.exists(expected_file):
-            #    with open(wkb_file, 'rb') as fh:
-            #        with open(expected_file, 'wb') as out:
-            #            pickle.dump(
-            #                wkb_raster.read(fh),
-            #                out,
-            #                protocol=2
-            #            )
-            #    continue
+            # yeah... dirty override
+            if BUILD_DATA:
+
+                with open(source_file, 'rb') as fh:
+
+                    with open(expected_file, 'wb') as out:
+                        pickle.dump(
+                            wkb_raster.read(fh),
+                            out,
+                            protocol=2
+                        )
+
+                continue
 
             with open(expected_file, 'rb') as fh:
 
                 expected = pickle.load(fh)
 
-            with open(wkb_file, 'rb') as fh:
+            with open(source_file, 'rb') as fh:
 
                 testing = wkb_raster.read(fh)
 
