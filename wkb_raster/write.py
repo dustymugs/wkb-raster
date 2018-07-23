@@ -120,7 +120,7 @@ class POSTGIS_PIXEL_TYPES(object):
             if len(matches) == 1:
                 return matches[0]
 
-            for rank in ranked:
+            for rank in POSTGIS_PIXEL_TYPES.RANKED:
                 if rank in matches:
                     return rank
 
