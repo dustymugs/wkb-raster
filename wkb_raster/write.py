@@ -87,10 +87,24 @@ class POSTGIS_PIXEL_TYPES(object):
         struct = 'd'
         numpy = np.float64
 
-    @staticmethod
-    def get_by(pixtype=None, size=None, struct=None, numpy=None):
+    RANKED = [
+        FLOAT64,
+        FLOAT32,
+        UINT32,
+        INT32,
+        UINT16,
+        INT16,
+        UINT8,
+        INT8,
+        BOOL,
+        UINT4,
+        UINT2,
+    ]
 
-        return tuple((
+    @staticmethod
+    def get_by(pixtype=None, size=None, struct=None, numpy=None, best_match=True):
+
+        matches = tuple((
             v
             for v in POSTGIS_PIXEL_TYPES.children
             if (
@@ -100,6 +114,17 @@ class POSTGIS_PIXEL_TYPES(object):
                 (numpy is not None and v.numpy == numpy)
             )
         ))
+
+        if best_match:
+
+            if len(matches) == 1:
+                return matches[0]
+
+            for rank in ranked:
+                if rank in matches:
+                    return rank
+
+        return matches
 
 POSTGIS_PIXEL_TYPES.children = tuple((
     v
@@ -255,7 +280,7 @@ def write(rast_dict):
         # +---------------+--------------+-----------------------------------+
 
         # extract pixel info for numpy array
-        pixel_class = POSTGIS_PIXEL_TYPES.get_by(pixtype=band_dict['pixtype'])[0]
+        pixel_class = POSTGIS_PIXEL_TYPES.get_by(pixtype=band_dict['pixtype'])
 
         band_bstr += pack(
             endian + 'B',
